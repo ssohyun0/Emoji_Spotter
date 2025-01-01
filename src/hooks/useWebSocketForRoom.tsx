@@ -1,8 +1,8 @@
-import { useState, useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 type PlayerState = {
   playerId: string;
-  isReady: boolean;
+  score: number;
 };
 
 type RoomState = {
@@ -11,42 +11,44 @@ type RoomState = {
   isRoomReady: boolean;
 };
 
-const useWebSocketForRoom = (url: string, roomId: string) => {
-  const [roomState, setRoomState] = useState<RoomState>({
-    players: [],
-    roomId,
-    isRoomReady: false,
-  });
+type ServerMessage = {
+  type: "roomUpdate";
+  roomId: string;
+  players: PlayerState[];
+  isRoomReady: boolean;
+};
 
+const useWebSocketForRoom = (url: string, roomId: string | null) => {
+  const [roomState, setRoomState] = useState<RoomState | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const socketRef = useRef<WebSocket | null>(null);
 
   useEffect(() => {
-    const socket = new WebSocket(url);
+    if (!roomId) {
+      setRoomState(null); // roomId가 없으면 상태 초기화
+      return;
+    }
+
+    const socket = new WebSocket(`${url}?roomId=${roomId}`);
     socketRef.current = socket;
 
     socket.onopen = () => {
       console.log("Connected to WebSocket server");
       setIsConnected(true);
-
-      socket.send(
-        JSON.stringify({
-          type: "join",
-          roomId,
-        })
-      );
     };
+
     socket.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      console.log("Message from server : ", data);
+      const data = JSON.parse(event.data) as ServerMessage;
+      console.log("Message from server:", data);
 
       if (data.type === "roomUpdate") {
-        setRoomState((prev: RoomState) => ({
-          ...prev,
-          players: data.players,
-          isRoomReady: data.players.length === 2,
-        }));
+        setRoomState(data); // 서버에서 받은 방 상태 업데이트
       }
+    };
+
+    socket.onerror = (error) => {
+      console.error("WebSocket error:", error);
+      setIsConnected(false); // 연결 실패로 상태 업데이트
     };
 
     socket.onclose = () => {
@@ -54,14 +56,24 @@ const useWebSocketForRoom = (url: string, roomId: string) => {
       setIsConnected(false);
     };
 
+    // WebSocket 정리
     return () => {
-      socket.close();
+      if (socket) {
+        socket.onopen = null;
+        socket.onmessage = null;
+        socket.onclose = null;
+        socket.onerror = null;
+        socket.close();
+      }
     };
   }, [url, roomId]);
 
+  const isWebSocketOpen = () =>
+    socketRef.current && socketRef.current.readyState === WebSocket.OPEN;
+
   const sendReadyState = (isReady: boolean) => {
-    if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
-      socketRef.current.send(
+    if (isWebSocketOpen()) {
+      socketRef.current!.send(
         JSON.stringify({
           type: "ready",
           roomId,
