@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import axios from "axios";
+import "./App.css";
 import GameStartScreen from "./components/GameStartScreen";
 import Game from "./components/Game";
 
@@ -53,7 +54,7 @@ const App = () => {
   };
 
   return (
-    <div>
+    <div className="app-container">
       {gameState === "start" && (
         <GameStartScreen
           onStart={handleGameStart}
