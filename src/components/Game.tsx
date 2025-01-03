@@ -15,10 +15,19 @@ const Game: React.FC = () => {
   };
 
   return (
-    <div>
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column", // 자식 요소 수직 정렬
+        justifyContent: "center", // 세로 중심 정렬
+        alignItems: "center", // 가로 중심 정렬
+        height: "100vh",
+      }}
+    >
       {!isGameOver ? (
         <>
           <GameBoard round={round} />
+          <button onClick={handleNextRound}>Next Round</button>
         </>
       ) : (
         <div>Game Over</div>

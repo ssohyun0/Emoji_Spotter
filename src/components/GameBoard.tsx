@@ -1,18 +1,22 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
 type GameBoardProps = {
   round: number;
 };
 
 const GameBoard: React.FC<GameBoardProps> = ({ round }) => {
-  const gridSize = round + 1;
+  const gridSize = round < 5 ? round + 1 : 5;
   const totalCells = gridSize * gridSize;
 
-  const [board, setBoard] = useState<string[]>(
-    Array.from({ length: totalCells }, (_, index) =>
+  const [board, setBoard] = useState<string[]>([]);
+
+  useEffect(() => {
+    const newBoard = Array.from({ length: totalCells }, (_, index) =>
       index === Math.floor(Math.random() * totalCells) ? "😎" : "😀"
-    )
-  );
+    );
+    setBoard(newBoard);
+  }, [round]);
+
   return (
     <div
       style={{
