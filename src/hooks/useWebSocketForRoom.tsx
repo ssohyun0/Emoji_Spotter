@@ -11,16 +11,10 @@ type RoomState = {
   isRoomReady: boolean;
 };
 
-type ServerMessage = {
-  type: "roomUpdate";
-  roomId: string;
-  players: PlayerState[];
-  isRoomReady: boolean;
-};
-
 const useWebSocketForRoom = (url: string, roomId: string | null) => {
   const [roomState, setRoomState] = useState<RoomState | null>(null);
   const [isConnected, setIsConnected] = useState(false);
+  const [serverMessage, setServerMessage] = useState<string | null>(null); // 서버 메시지를 저장할 상태
   const socketRef = useRef<WebSocket | null>(null);
 
   useEffect(() => {
@@ -38,17 +32,22 @@ const useWebSocketForRoom = (url: string, roomId: string | null) => {
     };
 
     socket.onmessage = (event) => {
-      const data = JSON.parse(event.data) as ServerMessage;
-      console.log("Message from server:", data);
+      try {
+        const message = event.data; // 메시지가 단순 텍스트일 경우
+        console.log("Message received from server:", message);
 
-      if (data.type === "roomUpdate") {
-        setRoomState(data); // 서버에서 받은 방 상태 업데이트
+        if (message.includes("is ready!")) {
+          setServerMessage(message); // 메시지를 상태에 저장
+          console.log("Server message:", message);
+        }
+      } catch (error) {
+        console.error("Failed to handle WebSocket message:", event.data);
       }
     };
 
     socket.onerror = (error) => {
       console.error("WebSocket error:", error);
-      setIsConnected(false); // 연결 실패로 상태 업데이트
+      setIsConnected(false);
     };
 
     socket.onclose = () => {
@@ -87,6 +86,7 @@ const useWebSocketForRoom = (url: string, roomId: string | null) => {
     roomState,
     isConnected,
     sendReadyState,
+    serverMessage, // 서버 메시지를 반환
   };
 };
 
