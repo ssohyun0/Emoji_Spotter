@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useMutation } from "@tanstack/react-query";
 import axios from "axios";
 import "./App.css";
@@ -11,11 +11,13 @@ const App = () => {
   >("start");
 
   const [roomData, setRoomData] = useState<null | {
-    roomId: Number;
-    players: { playerId: String; score: Number }[];
-    roomReady: Boolean;
-    roundAnswers: { [key: String]: String | null };
+    roomId: number;
+    players: { playerId: string; score: number }[];
+    roomReady: boolean;
+    roundAnswers: { [key: string]: string | null };
   }>(null);
+
+  const [serverMessage, setServerMessage] = useState<string | null>(null);
 
   const connectMutation = useMutation({
     mutationFn: async () => {
@@ -27,8 +29,7 @@ const App = () => {
   const handleGameStart = async () => {
     try {
       const data = await connectMutation.mutateAsync();
-      console.log("Connected to room:", data); // API 호출 결과 확인
-      setGameState("playing"); // Game Board 화면으로 전환
+      console.log("Connected to room:", data);
 
       setRoomData({
         roomId: data.roomId,
@@ -53,6 +54,41 @@ const App = () => {
     }
   };
 
+  // WebSocket 연결 및 메시지 처리
+  useEffect(() => {
+    if (!roomData || !roomData.roomId) return;
+
+    const socket = new WebSocket(
+      `ws://localhost:8080/ws/game?roomId=${roomData.roomId}`
+    );
+
+    socket.onopen = () => {
+      console.log("Connected to WebSocket server");
+    };
+
+    socket.onmessage = (event) => {
+      const message = event.data;
+      console.log("Message from WebSocket:", message);
+
+      if (message.includes("is ready!")) {
+        setServerMessage(message);
+        setGameState("playing");
+      }
+    };
+
+    socket.onerror = (error) => {
+      console.error("WebSocket error:", error);
+    };
+
+    socket.onclose = () => {
+      console.log("WebSocket connection closed");
+    };
+
+    return () => {
+      socket.close();
+    };
+  }, [roomData]);
+
   return (
     <div className="app-container">
       {gameState === "start" && (
@@ -64,13 +100,10 @@ const App = () => {
       {gameState === "waiting" && (
         <div>
           <p>Waiting for another player to join..</p>
+          {serverMessage && <p>{serverMessage}</p>}
         </div>
       )}
-      {gameState === "playing" && (
-        <div>
-          <Game roomData={roomData} />
-        </div>
-      )}
+      {gameState === "playing" && roomData && <Game roomData={roomData} />}
     </div>
   );
 };
