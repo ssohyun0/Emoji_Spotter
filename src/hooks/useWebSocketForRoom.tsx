@@ -1,93 +1,68 @@
-import { useEffect, useRef, useState } from "react";
-
-type PlayerState = {
-  playerId: string;
-  score: number;
-};
+import { useState, useEffect, useRef } from "react";
 
 type RoomState = {
-  players: PlayerState[];
-  roomId: string;
-  isRoomReady: boolean;
+  boardSize: number;
+  answerNumber: number;
 };
 
 const useWebSocketForRoom = (url: string, roomId: string | null) => {
   const [roomState, setRoomState] = useState<RoomState | null>(null);
-  const [isConnected, setIsConnected] = useState(false);
-  const [serverMessage, setServerMessage] = useState<string | null>(null); // 서버 메시지를 저장할 상태
   const socketRef = useRef<WebSocket | null>(null);
 
-  useEffect(() => {
-    if (!roomId) {
-      setRoomState(null); // roomId가 없으면 상태 초기화
-      return;
+  const connectToWebSocket = (roomId: string) => {
+    // 기존 연결이 닫히지 않았으면 닫기
+    if (socketRef.current) {
+      if (socketRef.current.readyState === WebSocket.OPEN) {
+        console.warn("Closing existing WebSocket connection...");
+        socketRef.current.close();
+      }
     }
 
     const socket = new WebSocket(`${url}?roomId=${roomId}`);
     socketRef.current = socket;
 
     socket.onopen = () => {
-      console.log("Connected to WebSocket server");
-      setIsConnected(true);
+      console.log("WebSocket connected");
     };
 
     socket.onmessage = (event) => {
+      const rawMessage = event.data;
+      console.log("Message received:", event.data);
       try {
-        const message = event.data; // 메시지가 단순 텍스트일 경우
-        console.log("Message received from server:", message);
-
-        if (message.includes("is ready!")) {
-          setServerMessage(message); // 메시지를 상태에 저장
-          console.log("Server message:", message);
+        const parsedMessage = parseTextMessage(rawMessage);
+        if (parsedMessage) {
+          setRoomState(parsedMessage);
         }
       } catch (error) {
-        console.error("Failed to handle WebSocket message:", event.data);
+        console.error("Failed to parse WebSocket message:", rawMessage);
       }
     };
 
     socket.onerror = (error) => {
       console.error("WebSocket error:", error);
-      setIsConnected(false);
     };
 
     socket.onclose = () => {
-      console.log("Disconnected from WebSocket server");
-      setIsConnected(false);
+      console.log("WebSocket connection closed");
     };
+  };
 
-    // WebSocket 정리
-    return () => {
-      if (socket) {
-        socket.onopen = null;
-        socket.onmessage = null;
-        socket.onclose = null;
-        socket.onerror = null;
-        socket.close();
-      }
-    };
-  }, [url, roomId]);
-
-  const isWebSocketOpen = () =>
-    socketRef.current && socketRef.current.readyState === WebSocket.OPEN;
-
-  const sendReadyState = (isReady: boolean) => {
-    if (isWebSocketOpen()) {
-      socketRef.current!.send(
-        JSON.stringify({
-          type: "ready",
-          roomId,
-          isReady,
-        })
-      );
+  // 텍스트 메시지를 파싱하여 boardSize와 answerNumber 추출
+  const parseTextMessage = (message: string): RoomState | null => {
+    const regex = /방 번호: \d+\s+Round\d+\s+정답 위치: (\d+)/;
+    const match = message.match(regex);
+    if (match) {
+      const [, answerNumber] = match;
+      const boardSize = Math.sqrt(parseInt(answerNumber, 10) + 1); // 동적 계산
+      return {
+        boardSize,
+        answerNumber: parseInt(answerNumber, 10),
+      };
     }
+    return null;
   };
 
-  return {
-    roomState,
-    isConnected,
-    sendReadyState,
-    serverMessage, // 서버 메시지를 반환
-  };
+  return { roomState, connectToWebSocket };
 };
 
 export default useWebSocketForRoom;
