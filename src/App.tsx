@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { useMutation } from "@tanstack/react-query";
 import axios from "axios";
-import "./App.css";
 import GameStartScreen from "./components/GameStartScreen";
 import Game from "./components/Game";
 
@@ -14,7 +13,6 @@ const App = () => {
     roomId: number;
     players: { playerId: string; score: number }[];
     roomReady: boolean;
-    roundAnswers: { [key: string]: string | null };
   }>(null);
 
   const [serverMessage, setServerMessage] = useState<string | null>(null);
@@ -35,13 +33,6 @@ const App = () => {
         roomId: data.roomId,
         players: data.players,
         roomReady: data.roomReady,
-        roundAnswers: {
-          round1Answer: data.round1Answer,
-          round2Answer: data.round2Answer,
-          round3Answer: data.round3Answer,
-          round4Answer: data.round4Answer,
-          round5Answer: data.round5Answer,
-        },
       });
 
       if (data.roomReady) {
@@ -85,7 +76,9 @@ const App = () => {
     };
 
     return () => {
-      socket.close();
+      if (socket.readyState === WebSocket.OPEN) {
+        socket.close();
+      }
     };
   }, [roomData]);
 
@@ -99,7 +92,7 @@ const App = () => {
       )}
       {gameState === "waiting" && (
         <div>
-          <p>Waiting for another player to join..</p>
+          <p>Waiting for another player to join...</p>
           {serverMessage && <p>{serverMessage}</p>}
         </div>
       )}

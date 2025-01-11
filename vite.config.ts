@@ -10,6 +10,11 @@ export default defineConfig({
         changeOrigin: true,
         secure: false, // HTTPS 인증서 검증 비활성화
       },
+      "/rooms": {
+        target: "http://localhost:8080",
+        changeOrigin: true,
+        secure: false,
+      },
     },
   },
 });
