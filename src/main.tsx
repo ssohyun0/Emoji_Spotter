@@ -8,9 +8,9 @@ import "./index.css"; // 선택적으로 스타일 추가
 const queryClient = new QueryClient();
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
-  <React.StrictMode>
+  <React.Fragment>
     <QueryClientProvider client={queryClient}>
       <App />
     </QueryClientProvider>
-  </React.StrictMode>
+  </React.Fragment>
 );

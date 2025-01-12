@@ -27,14 +27,22 @@ const useWebSocketForRoom = (url: string, roomId: string | null) => {
 
     socket.onmessage = (event) => {
       const rawMessage = event.data;
-      console.log("Message received:", event.data);
+      console.log("Message received from WebSocket:", rawMessage);
+
       try {
         const parsedMessage = parseTextMessage(rawMessage);
         if (parsedMessage) {
-          setRoomState(parsedMessage);
+          if (!roomState || roomState.boardSize === 0) {
+            setRoomState(parsedMessage);
+            console.log("roomState updated:", parsedMessage);
+          } else {
+            console.log("roomState already set. Ignoring update.");
+          }
+        } else {
+          console.warn("Failed to parse WebSocket message:", rawMessage);
         }
       } catch (error) {
-        console.error("Failed to parse WebSocket message:", rawMessage);
+        console.error("Error parsing WebSocket message:", rawMessage, error);
       }
     };
 
