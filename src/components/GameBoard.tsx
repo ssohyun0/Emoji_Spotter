@@ -79,6 +79,12 @@ const GameBoard: React.FC<GameBoardProps> = ({ round, roomId }) => {
     }
   }, [roomState, broadAnswerCalled, gridSize]);
 
+  // 라운드 변경 시 selectedCell 초기화
+  useEffect(() => {
+    setSelectedCell(null);
+    console.log("Selected cell reset for new round.");
+  }, [round]);
+
   // 셀 클릭 핸들러
   const handleCellClick = (index: number) => {
     if (selectedCell !== null) return; // 이미 셀이 선택되었으면 클릭 비활성화

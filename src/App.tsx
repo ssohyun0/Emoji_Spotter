@@ -3,6 +3,7 @@ import { useMutation } from "@tanstack/react-query";
 import axios from "axios";
 import GameStartScreen from "./components/GameStartScreen";
 import Game from "./components/Game";
+import "./App.css";
 
 const App = () => {
   const [gameState, setGameState] = useState<
