@@ -14,8 +14,7 @@ const GameBoard: React.FC<GameBoardProps> = ({ round, roomId }) => {
   const [broadAnswerCalled, setBroadAnswerCalled] = useState<boolean>(false);
 
   const { connectToWebSocket, roomState } = useWebSocketForRoom(
-    `ws://localhost:8080/ws/game`,
-    roomId
+    `ws://localhost:8080/ws/game`
   );
 
   // 라운드에 따라 그리드 크기 결정

@@ -1,11 +1,11 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef } from "react";
 
 type RoomState = {
   boardSize: number;
   answerNumber: number;
 };
 
-const useWebSocketForRoom = (url: string, roomId: string | null) => {
+const useWebSocketForRoom = (url: string) => {
   const [roomState, setRoomState] = useState<RoomState | null>(null);
   const socketRef = useRef<WebSocket | null>(null);
 
