@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, UseMutationResult } from "@tanstack/react-query";
 import axios from "axios";
 import GameStartScreen from "./components/GameStartScreen";
 import Game from "./components/Game";
@@ -18,7 +18,15 @@ const App = () => {
 
   const [serverMessage, setServerMessage] = useState<string | null>(null);
 
-  const connectMutation = useMutation({
+  const connectMutation: UseMutationResult<
+    {
+      roomId: number;
+      players: { playerId: string; score: number }[];
+      roomReady: boolean;
+    },
+    Error,
+    void
+  > = useMutation({
     mutationFn: async () => {
       const response = await axios.post("/connect");
       return response.data;
@@ -46,7 +54,6 @@ const App = () => {
     }
   };
 
-  // WebSocket 연결 및 메시지 처리
   useEffect(() => {
     if (!roomData || !roomData.roomId) return;
 
@@ -88,7 +95,7 @@ const App = () => {
       {gameState === "start" && (
         <GameStartScreen
           onStart={handleGameStart}
-          isLoading={connectMutation.isLoading}
+          isLoading={connectMutation.status === "pending"}
         />
       )}
       {gameState === "waiting" && (
