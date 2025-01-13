@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useMutation, UseMutationResult } from "@tanstack/react-query";
 import axios from "axios";
 import GameStartScreen from "./components/GameStartScreen";
@@ -7,7 +7,7 @@ import "./App.css";
 
 const App = () => {
   const [gameState, setGameState] = useState<
-    "start" | "waiting" | "playing" | "end"
+    "start" | "loading" | "waiting" | "playing" | "end"
   >("start");
 
   const [roomData, setRoomData] = useState<null | {
@@ -17,6 +17,9 @@ const App = () => {
   }>(null);
 
   const [serverMessage, setServerMessage] = useState<string | null>(null);
+
+  // API 호출 상태 관리
+  const isBroadRoomReadyCalled = useRef(false);
 
   const connectMutation: UseMutationResult<
     {
@@ -45,7 +48,7 @@ const App = () => {
       });
 
       if (data.roomReady) {
-        setGameState("playing");
+        setGameState("loading");
       } else {
         setGameState("waiting");
       }
@@ -70,6 +73,30 @@ const App = () => {
       console.log("Message from WebSocket:", message);
 
       if (message.includes("is ready!")) {
+        setServerMessage(message);
+        setGameState("loading");
+
+        // 3초 후에 broad-room-ready API 호출 (한 번만 실행)
+        if (!isBroadRoomReadyCalled.current) {
+          isBroadRoomReadyCalled.current = true;
+          setTimeout(async () => {
+            try {
+              const response = await axios.post(
+                `http://localhost:8080/broad-room-ready/${roomData.roomId}`
+              );
+              console.log("Broad-room-ready response:", response.data);
+            } catch (error) {
+              console.error("Failed to broadcast room ready:", error);
+            }
+          }, 3000);
+        }
+      }
+
+      // 모든 클라이언트가 브로드캐스트 메시지를 수신한 후 보드판 표시
+      if (
+        message.includes("(모두한테 알림)Room") &&
+        message.includes("is ready!")
+      ) {
         setServerMessage(message);
         setGameState("playing");
       }
@@ -101,6 +128,12 @@ const App = () => {
       {gameState === "waiting" && (
         <div>
           <p>Waiting for another player to join...</p>
+          {serverMessage && <p>{serverMessage}</p>}
+        </div>
+      )}
+      {gameState === "loading" && (
+        <div>
+          <p>Loading... Please wait.</p>
           {serverMessage && <p>{serverMessage}</p>}
         </div>
       )}
