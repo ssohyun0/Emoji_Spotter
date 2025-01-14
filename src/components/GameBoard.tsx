@@ -1,89 +1,52 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
-import useWebSocketForRoom from "../hooks/useWebSocketForRoom";
 
-type GameBoardProps = {
-  round: number;
-  roomId: string;
-};
+interface GameBoardProps {
+  roomId: number;
+  socket: WebSocket;
+}
 
-const GameBoard: React.FC<GameBoardProps> = ({ round, roomId, setRound }) => {
+const GameBoard: React.FC<GameBoardProps> = ({ roomId, socket }) => {
   const [board, setBoard] = useState<string[]>([]);
+  const [round, setRound] = useState<number>(0);
+  const [answerPosition, setAnswerPosition] = useState<number | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
-  const [selectedCell, setSelectedCell] = useState<number | null>(null);
-  const [broadAnswerCalled, setBroadAnswerCalled] = useState<boolean>(false);
-
-  const { connectToWebSocket, roomState } = useWebSocketForRoom(
-    `ws://localhost:8080/ws/game`
-  );
-
-  const calculateGridSize = (round: number): number => {
-    if (round === 1) return 2;
-    if (round === 2) return 3;
-    if (round === 3) return 4;
-    if (round >= 4) return 5;
-    return 2;
-  };
-
-  const gridSize = calculateGridSize(round);
 
   useEffect(() => {
-    if (roomId) {
-      console.log(`Connecting WebSocket for roomId: ${roomId}`);
-      connectToWebSocket(roomId);
-    }
-  }, [roomId]);
+    if (!socket) return;
 
-  useEffect(() => {
-    const initializeBoard = async () => {
+    const handleMessage = (event: MessageEvent) => {
       try {
-        if (round === 1 || broadAnswerCalled) {
-          const nextRoundResponse = await axios.get(
-            `/rooms/${roomId}/next-round?round=${round}`
-          );
-          console.log("next-round API response:", nextRoundResponse.data);
+        const message = JSON.parse(event.data);
 
-          const response = await axios.post(
-            `/broad-answer/${roomId}?round=${round}`
+        if (message.gameRoomId === roomId) {
+          const { round, answerPosition } = message;
+
+          setRound(round);
+          setAnswerPosition(answerPosition);
+
+          // Calculate board size and populate board
+          const boardSize = (round + 1) * (round + 1);
+          const newBoard = Array.from({ length: boardSize }, (_, index) =>
+            index === answerPosition ? "😎" : "😀"
           );
-          console.log("broad-answer API response:", response.data);
-          setBroadAnswerCalled(true);
+
+          setBoard(newBoard);
+          setLoading(false);
         }
       } catch (error) {
-        console.error("Error calling broad-answer API:", error);
+        console.error("Failed to parse WebSocket message:", error);
       }
     };
 
-    initializeBoard();
-  }, [round, roomId]);
+    socket.addEventListener("message", handleMessage);
 
-  useEffect(() => {
-    if (broadAnswerCalled && roomState?.answerNumber !== undefined) {
-      const newBoard = Array.from({ length: gridSize * gridSize }, (_, index) =>
-        index === roomState.answerNumber - 1 ? "😎" : "😀"
-      );
-      setBoard(newBoard);
-      setLoading(false);
-
-      // 5초 후 자동으로 다음 라운드로 이동 (2~5 라운드만)
-      if (round >= 2 && round <= 5) {
-        const timer = setTimeout(() => {
-          setRound(round + 1);
-        }, 5000);
-        return () => clearTimeout(timer);
-      }
-    }
-  }, [roomState, broadAnswerCalled, gridSize, round, setRound]);
-
-  useEffect(() => {
-    setSelectedCell(null);
-  }, [round]);
+    return () => {
+      socket.removeEventListener("message", handleMessage);
+    };
+  }, [socket, roomId]);
 
   const handleCellClick = (index: number) => {
-    if (selectedCell !== null) return;
-    setSelectedCell(index);
-
-    if (roomState?.answerNumber === index) {
+    if (index === answerPosition) {
       console.log("Correct cell clicked!", index);
     } else {
       console.log("Wrong cell clicked!", index);
@@ -91,6 +54,8 @@ const GameBoard: React.FC<GameBoardProps> = ({ round, roomId, setRound }) => {
   };
 
   if (loading) return <div>Loading...</div>;
+
+  const gridSize = round + 1;
 
   return (
     <div>
@@ -115,8 +80,8 @@ const GameBoard: React.FC<GameBoardProps> = ({ round, roomId, setRound }) => {
               alignItems: "center",
               border: "1px solid #ccc",
               borderRadius: "8px",
-              cursor: selectedCell === null ? "pointer" : "not-allowed",
-              backgroundColor: selectedCell === index ? "#d1ffd6" : "white",
+              cursor: "pointer",
+              backgroundColor: index === answerPosition ? "#d1ffd6" : "white",
             }}
           >
             {emoji}
