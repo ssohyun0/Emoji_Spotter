@@ -2,6 +2,7 @@ import { useState } from "react";
 import GameStartScreen from "./components/GameStartScreen";
 import Game from "./components/Game";
 import "./App.css";
+import useWebSocket from "./hooks/useWebSocket";
 
 const App = () => {
   const [gameState, setGameState] = useState<"start" | "gameStart" | "game">(
