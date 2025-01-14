@@ -6,16 +6,6 @@ export default defineConfig({
   server: {
     proxy: {
       "/connect": {
-        target: "http://localhost:8080", // 백엔드 주소
-        changeOrigin: true,
-        secure: false, // HTTPS 인증서 검증 비활성화
-      },
-      "/rooms": {
-        target: "http://localhost:8080",
-        changeOrigin: true,
-        secure: false,
-      },
-      "/broad-answer": {
         target: "http://localhost:8080",
         changeOrigin: true,
         secure: false,
