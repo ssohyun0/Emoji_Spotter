@@ -1,5 +1,7 @@
+import GameBoard from "./GameBoard";
+
 const Game = () => {
-  return <div>Game is running!</div>;
+  return <GameBoard />;
 };
 
 export default Game;
