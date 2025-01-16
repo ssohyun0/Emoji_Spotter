@@ -5,6 +5,7 @@ import GameBoard from "./GameBoard";
 
 type GameProps = {
   roomId: number;
+  playerId: string;
   onGameEnd: () => void;
 };
 
@@ -14,7 +15,7 @@ interface GameData {
   answerPosition: number;
 }
 
-const Game: React.FC<GameProps> = ({ roomId, onGameEnd }) => {
+const Game: React.FC<GameProps> = ({ roomId, playerId, onGameEnd }) => {
   const { gameMessages } = useWebSocketContext();
   const [gameData, setGameData] = useState<GameData | null>(null);
 
@@ -63,6 +64,7 @@ const Game: React.FC<GameProps> = ({ roomId, onGameEnd }) => {
           gameRoomId={gameData.gameRoomId}
           round={gameData.round}
           answerPosition={gameData.answerPosition}
+          playerId={playerId}
         />
       ) : (
         <div> Loading game data...</div>
