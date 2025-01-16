@@ -62,7 +62,7 @@ const GameStartScreen: React.FC<GameStartScreenProps> = ({
         onGameStart();
       }
     });
-  }, [gameStartScreenMessages, onGameStart, apiCalled]);
+  }, [gameStartScreenMessages, onGameStart, apiCalled, roomId]);
 
   return <div>{statusMessage}</div>;
 };
