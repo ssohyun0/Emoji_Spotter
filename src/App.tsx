@@ -1,14 +1,15 @@
 import { useState } from "react";
 import GameStartScreen from "./components/GameStartScreen";
 import Game from "./components/Game";
+import GameEndScreen from "./components/GameEndScreen";
 import "./App.css";
 import { WebSocketProvider } from "./contexts/WebSocketContext";
 import axios from "axios";
 
 const App = () => {
-  const [gameState, setGameState] = useState<"start" | "gameStart" | "game">(
-    "start"
-  );
+  const [gameState, setGameState] = useState<
+    "start" | "gameStart" | "game" | "end"
+  >("start");
   const [roomId, setRoomId] = useState<number | null>(null);
   const [statusMessage, setStatusMessage] = useState("");
   const [roomReady, setRoomReady] = useState(false);
@@ -53,7 +54,10 @@ const App = () => {
             roomId={roomId}
           />
         )}
-        {gameState === "game" && <Game />}
+        {gameState === "game" && (
+          <Game roomId={roomId} onGameEnd={() => setGameState("end")} />
+        )}
+        {gameState === "end" && <GameEndScreen />}
       </div>
     </WebSocketProvider>
   );

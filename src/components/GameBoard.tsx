@@ -1,93 +1,63 @@
 import React, { useState, useEffect } from "react";
 
-interface GameBoardProps {
-  roomId: number;
-  socket: WebSocket;
-}
+type GameBoardProps = {
+  gameRoomId: number;
+  round: number;
+  answerPosition: number;
+};
 
-const GameBoard: React.FC<GameBoardProps> = ({ roomId, socket }) => {
-  const [board, setBoard] = useState<string[]>([]);
-  const [round, setRound] = useState<number>(0);
-  const [answerPosition, setAnswerPosition] = useState<number | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
+const GameBoard: React.FC<GameBoardProps> = ({ round, answerPosition }) => {
+  const gridSize = round === 5 ? round * round : (round + 1) * (round + 1);
+  const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
 
   useEffect(() => {
-    if (!socket) return;
-
-    const handleMessage = (event: MessageEvent) => {
-      try {
-        const message = JSON.parse(event.data);
-
-        if (message.gameRoomId === roomId) {
-          const { round, answerPosition } = message;
-
-          setRound(round);
-          setAnswerPosition(answerPosition);
-
-          // Calculate board size and populate board
-          const boardSize = (round + 1) * (round + 1);
-          const newBoard = Array.from({ length: boardSize }, (_, index) =>
-            index === answerPosition ? "😎" : "😀"
-          );
-
-          setBoard(newBoard);
-          setLoading(false);
-        }
-      } catch (error) {
-        console.error("Failed to parse WebSocket message:", error);
-      }
-    };
-
-    socket.addEventListener("message", handleMessage);
-
-    return () => {
-      socket.removeEventListener("message", handleMessage);
-    };
-  }, [socket, roomId]);
+    setSelectedIndex(null);
+  }, [round]);
 
   const handleCellClick = (index: number) => {
-    if (index === answerPosition) {
-      console.log("Correct cell clicked!", index);
-    } else {
-      console.log("Wrong cell clicked!", index);
-    }
+    if (selectedIndex !== null) return;
+    setSelectedIndex(index);
+    console.log(`Cell ${index} selected. Answer: ${answerPosition - 1}`);
   };
 
-  if (loading) return <div>Loading...</div>;
-
-  const gridSize = round + 1;
+  const board = Array.from({ length: gridSize }, (_, index) => {
+    return index === answerPosition - 1 ? "😎" : "😀";
+  });
 
   return (
-    <div>
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: `repeat(${gridSize}, 1fr)`,
-          gap: "10px",
-          maxWidth: "300px",
-          margin: "0 auto",
-        }}
-      >
-        {board.map((emoji, index) => (
-          <div
-            key={index}
-            onClick={() => handleCellClick(index)}
-            style={{
-              width: "60px",
-              height: "60px",
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-              border: "1px solid #ccc",
-              borderRadius: "8px",
-              cursor: "pointer",
-              backgroundColor: index === answerPosition ? "#d1ffd6" : "white",
-            }}
-          >
-            {emoji}
-          </div>
-        ))}
-      </div>
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: `repeat(${round === 5 ? round : round + 1}, 1fr)`,
+        gap: "5px",
+        maxWidth: "400px",
+        margin: "0 auto",
+      }}
+    >
+      {board.map((emoji, index) => (
+        <div
+          key={index}
+          onClick={() => handleCellClick(index)}
+          style={{
+            width: "50px",
+            height: "50px",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            border: "1px solid #ddd",
+            borderRadius: "5px",
+            backgroundColor:
+              index === selectedIndex
+                ? index === answerPosition - 1
+                  ? "#d4edda" // 정답
+                  : "#f8d7da" // 오답
+                : "#fff",
+            cursor: selectedIndex === null ? "pointer" : "not-allowed",
+          }}
+        >
+          {emoji}
+        </div>
+      ))}
     </div>
   );
 };
