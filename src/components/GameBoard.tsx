@@ -1,25 +1,44 @@
 import React, { useState, useEffect } from "react";
+import axios from "axios";
 
 type GameBoardProps = {
   gameRoomId: number;
   round: number;
   answerPosition: number;
+  playerId: string;
 };
 
-const GameBoard: React.FC<GameBoardProps> = ({ round, answerPosition }) => {
+const GameBoard: React.FC<GameBoardProps> = ({
+  round,
+  answerPosition,
+  playerId,
+}) => {
   const gridSize = round === 5 ? round * round : (round + 1) * (round + 1);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+  const [isAnswered, setIsAnswered] = useState(false);
 
   useEffect(() => {
     setSelectedIndex(null);
+    setIsAnswered(false);
   }, [round]);
 
-  const handleCellClick = (index: number) => {
-    if (selectedIndex !== null) return;
+  const handleCellClick = async (index: number) => {
+    if (selectedIndex !== null || isAnswered) return;
     setSelectedIndex(index);
-    console.log(`Cell ${index} selected. Answer: ${answerPosition - 1}`);
-  };
 
+    const isCorrect = index === answerPosition - 1;
+    console.log(`Cell ${index} selected. Answer: ${answerPosition - 1}`);
+
+    if (isCorrect) {
+      try {
+        setIsAnswered(true);
+        const response = await axios.post(`/players/${playerId}/score`);
+        console.log("Score updated successfully:", response.data);
+      } catch (error) {
+        console.error("Failed to update score:", error);
+      }
+    }
+  };
   const board = Array.from({ length: gridSize }, (_, index) => {
     return index === answerPosition - 1 ? "😎" : "😀";
   });
